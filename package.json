@@ -1,0 +1,28 @@
+{
+  "name": "@cot/ac",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "agentic coding — autonomous two-agent dev loop (cot.industries)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "mcp": "tsx src/mcp/server.ts",
+    "ac": "tsx src/cli/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "gray-matter": "^4.0.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
