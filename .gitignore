@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+.DS_Store
+
+# ac runtime: per-run state + handoff artifacts.
+# (When ac operates ON a target repo, the audit trail lives in that repo's run branch.)
+.ac/
