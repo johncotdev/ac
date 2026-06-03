@@ -134,13 +134,57 @@ npm run ac -- init wire-smoke-001 --goal "Verify Claude and Codex exchange hando
    IMPLEMENT handoff back to `{ agent: "claude", role: "tech-lead" }`.
 6. In Claude Code, call `latest_handoff` with `run = "wire-smoke-001"` and
    `role = "tech-lead"`, review the implementation, then call `write_handoff` with a REVIEW
-   handoff. Use `review.result = "approved"` if it passes or `review.result = "changes-requested"`
-   with concrete `next_actions` if it does not.
+   handoff. The review verdict is the top-level `status`: use `status = "approved"` if it
+   passes, or `status = "changes-requested"` with concrete `next_actions` if it does not.
+   Because `phase = "review"`, include findings as a markdown string in `body.review`.
+
+Example approved REVIEW payload:
+
+```json
+{
+  "run": "wire-smoke-001",
+  "handoff": {
+    "ts": "2026-06-03T10:30:00Z",
+    "from": { "agent": "claude", "role": "tech-lead" },
+    "to": { "agent": "codex", "role": "lead-dev" },
+    "phase": "review",
+    "task": "Verify Claude and Codex exchange handoffs through ac-handoffs",
+    "status": "approved",
+    "confidence": 0.85,
+    "branch": "bootstrap/p0-spine",
+    "commits": [],
+    "files_touched": [],
+    "decisions": ["Approved: live handoff tool exchange succeeded."],
+    "open_questions": [],
+    "next_actions": ["No code changes required; the Tech Lead will write the final DONE handoff."],
+    "body": {
+      "summary": "Reviewed the smoke-loop implementation and approved it.",
+      "review": "- Handoff exchange completed through MCP tools.\n- No schema/store mismatch found."
+    }
+  }
+}
+```
+
+The `handoff` object intentionally omits `id`, `run`, and `seq`; the store injects them.
+`body.summary` is always required. `body.review` is required only when `phase = "review"`.
+
 7. If approved, write a final DONE handoff from Tech Lead to the human:
-   `{ agent: "john", role: "human" }`, `phase = "done"`, `status = "complete"`, and
-   `review.result = "approved"`.
+   `{ agent: "human", role: "human" }`, `phase = "done"`, and `status = "approved"`.
+   Do not add a nested review verdict field; the DONE verdict is already represented by the
+   top-level `status`. DONE may have an empty `next_actions` array.
 8. Capture every friction point for task 8: config prompts, tool visibility, tool-call payload
    confusion, role-prompt drift, Windows spawning, and any schema/store mismatch.
+
+Schema trace for the happy path:
+
+- PLAN: `claude/tech-lead` to `codex/lead-dev`, `phase = "plan"`,
+  `status = "in-progress"`, non-empty `next_actions`, `body.summary`.
+- IMPLEMENT: `codex/lead-dev` to `claude/tech-lead`, `phase = "implement"`,
+  `status = "in-progress"`, non-empty `next_actions`, `body.summary`.
+- REVIEW approved: `claude/tech-lead` to `codex/lead-dev`, `phase = "review"`,
+  `status = "approved"`, non-empty `next_actions`, `body.summary`, `body.review`.
+- DONE: `claude/tech-lead` to `human/human`, `phase = "done"`, `status = "approved"`,
+  empty `next_actions` allowed, `body.summary`.
 
 The live proof is this human-plus-agents smoke loop. Unit tests and process probes can confirm
 the server starts, but they do not prove that Claude Code and Codex both load and call the tools
