@@ -1,0 +1,10 @@
+[mcp_servers."ac-handoffs"]
+enabled = true
+command = "npm.cmd"
+args = ["run", "mcp"]
+cwd = "C:\\Dev\\ac"
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+
+[mcp_servers."ac-handoffs".env]
+AC_RUNS_DIR = "C:\\Dev\\ac\\.ac\\runs"

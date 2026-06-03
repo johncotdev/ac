@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ac-handoffs": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "cd /d C:\\Dev\\ac && npm.cmd run mcp"],
+      "env": {
+        "AC_RUNS_DIR": "C:\\Dev\\ac\\.ac\\runs"
+      }
+    }
+  }
+}
