@@ -137,6 +137,19 @@ export function serializeHandoff(handoff: Handoff): string {
   return matter.stringify(serializeBody(body), frontmatter);
 }
 
+export function parseHandoffDocument(raw: string): HandoffWriteInput {
+  const parsed = matter(raw);
+  const { id: _id, run: _run, seq: _seq, ...frontmatter } = asFrontmatter(parsed.data);
+  void _id;
+  void _run;
+  void _seq;
+
+  return {
+    ...frontmatter,
+    body: parseBody(parsed.content),
+  } as HandoffWriteInput;
+}
+
 function parseBody(content: string): HandoffBody {
   const sections: Partial<Record<BodySectionName, string>> = {};
   const matches = [...content.matchAll(/^## (Summary|Details|Review)\s*$/gm)];
@@ -199,7 +212,13 @@ function trimSectionContent(content: string): string {
 }
 
 function asFrontmatter(data: { [key: string]: unknown }): Record<string, unknown> {
-  return data;
+  const frontmatter = { ...data };
+
+  if (frontmatter.ts instanceof Date) {
+    frontmatter.ts = frontmatter.ts.toISOString();
+  }
+
+  return frontmatter;
 }
 
 function isNotFoundError(error: unknown): boolean {
