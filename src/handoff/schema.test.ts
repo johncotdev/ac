@@ -122,9 +122,37 @@ describe("HandoffSchema", () => {
     expect(HandoffSchema.safeParse(handoff).success).toBe(true);
   });
 
+  it("accepts blocked handoffs addressed to a human", () => {
+    const handoff = clone(planExample);
+    handoff.id = "20260603-axum-mw-0004";
+    handoff.seq = 4;
+    handoff.phase = "blocked";
+    handoff.status = "blocked";
+    handoff.to = { agent: "human", role: "human" };
+    handoff.next_actions = ["Clarify whether request IDs must be logged."];
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(true);
+  });
+
   it("rejects lead-dev done approval", () => {
     const handoff = clone(doneExample);
     handoff.from = { agent: "codex", role: "lead-dev" };
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
+  it("rejects lead-dev done handoffs with non-approved status", () => {
+    const handoff = clone(implementExample);
+    handoff.phase = "done";
+    handoff.status = "in-progress";
+    handoff.next_actions = [];
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
+  it("rejects tech-lead done handoffs with non-approved status", () => {
+    const handoff = clone(doneExample);
+    handoff.status = "changes-requested";
 
     expect(HandoffSchema.safeParse(handoff).success).toBe(false);
   });
@@ -145,6 +173,34 @@ describe("HandoffSchema", () => {
     expect(HandoffSchema.safeParse(handoff).success).toBe(false);
   });
 
+  it("rejects self-handoffs", () => {
+    const handoff = clone(planExample);
+    handoff.to = { agent: "claude", role: "tech-lead" };
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
+  it("rejects seq zero", () => {
+    const handoff = clone(planExample);
+    handoff.seq = 0;
+    handoff.id = "20260603-axum-mw-0000";
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
+  it("rejects ids that do not match run and seq", () => {
+    const handoff = clone(planExample);
+    handoff.id = "bad";
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
+  it("rejects unknown frontmatter fields", () => {
+    const handoff = { ...clone(planExample), unexpected: "nope" };
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
   it("rejects review handoffs without a Review section", () => {
     const handoff = clone(implementExample);
     handoff.from = { agent: "claude", role: "tech-lead" };
@@ -152,6 +208,19 @@ describe("HandoffSchema", () => {
     handoff.phase = "review";
     handoff.status = "changes-requested";
     handoff.body = { summary: "Review found one missing edge-case test." };
+
+    expect(HandoffSchema.safeParse(handoff).success).toBe(false);
+  });
+
+  it("rejects review handoffs with whitespace-only Review sections", () => {
+    const handoff = clone(implementExample);
+    handoff.id = "20260603-axum-mw-0003";
+    handoff.seq = 3;
+    handoff.from = { agent: "claude", role: "tech-lead" };
+    handoff.to = { agent: "codex", role: "lead-dev" };
+    handoff.phase = "review";
+    handoff.status = "changes-requested";
+    handoff.body = { summary: "Review found one missing edge-case test.", review: "   " };
 
     expect(HandoffSchema.safeParse(handoff).success).toBe(false);
   });

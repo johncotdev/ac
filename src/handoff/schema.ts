@@ -35,11 +35,8 @@ export const HandoffSchema = z
   .strictObject({
     id: z.string().min(1),
     run: z.string().min(1),
-    seq: z.number().int().nonnegative(),
-    ts: z
-      .iso
-      .datetime()
-      .refine((value) => value.endsWith("Z"), "ts must be an ISO-8601 UTC timestamp ending in Z"),
+    seq: z.number().int().positive(),
+    ts: z.iso.datetime(),
     from: ActorSchema,
     to: ActorSchema,
     phase: PhaseSchema,
@@ -55,16 +52,22 @@ export const HandoffSchema = z
     body: HandoffBodySchema,
   })
   .superRefine((handoff, ctx) => {
-    if (
-      handoff.phase === "done" &&
-      handoff.status === "approved" &&
-      handoff.from.role !== "tech-lead"
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["from", "role"],
-        message: "only from.role tech-lead may emit phase done with status approved",
-      });
+    if (handoff.phase === "done") {
+      if (handoff.from.role !== "tech-lead") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["from", "role"],
+          message: "phase done may only be emitted by from.role tech-lead",
+        });
+      }
+
+      if (handoff.status !== "approved") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["status"],
+          message: "phase done requires status approved",
+        });
+      }
     }
 
     if (handoff.phase === "blocked" && handoff.to.role !== "human") {
@@ -88,6 +91,23 @@ export const HandoffSchema = z
         code: "custom",
         path: ["body", "review"],
         message: "body.review is required when phase is review",
+      });
+    }
+
+    if (handoff.from.agent === handoff.to.agent) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["to", "agent"],
+        message: "handoffs must address another agent",
+      });
+    }
+
+    const expectedId = `${handoff.run}-${String(handoff.seq).padStart(4, "0")}`;
+    if (handoff.id !== expectedId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["id"],
+        message: "id must equal <run>-<zero-padded seq>",
       });
     }
 
